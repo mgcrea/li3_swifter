@@ -22,15 +22,41 @@ use lithium\core\Libraries;
  * @uses lithium\template\View
  * @uses lithium\core\Libraries
  */
-class Swifter {
+class Swifter extends \lithium\core\Adaptable {
 
     /**
-     * Quick mailer configurations.
+     * Stores configurations for mailer adapters
      *
-     * @see li3_swifter\extensions\Swifter::__init
      * @var array
      */
-    protected static $_config = array();
+    protected static $_configurations = array();
+
+    /**
+     * A stub method called by `_config()` which allows `Adaptable` subclasses to automatically
+     * assign or auto-generate additional configuration data, once a configuration is first
+     * accessed. This allows configuration data to be lazy-loaded from adapters or other data
+     * sources.
+     *
+     * @param string $name The name of the configuration which is being accessed. This is the key
+     *               name containing the specific set of configuration passed into `config()`.
+     * @param array $config Contains the configuration assigned to `$name`. If this configuration is
+     *              segregated by environment, then this will contain the configuration for the
+     *              current environment.
+     * @return array Returns the final array of settings for the given named configuration.
+     */
+    protected static function _initConfig($name, $config) {
+        $defaults = array(
+            'transport' => 'mail',
+            'filters' => array(),
+            'from' => null,
+            'to' => null,
+            'host' => 'smtp.example.org',
+            'port' => 25,
+            'username' => null,
+            'password' => null
+        );
+        return (array) $config + $defaults;
+    }
 
     /**
      * Get global configurations for Swiftmailer.
@@ -38,14 +64,7 @@ class Swifter {
      * @return void
      */
     public static function __init() {
-        static::$_config = Libraries::get('li3_swifter') + array(
-            'from' => null,
-            'to' => null,
-            'host' => 'smtp.example.org',
-            'port' => 25,
-            'username' => null,
-            'password' => null,
-        );
+        static::config(array('default' => Libraries::get('li3_swifter')));
     }
 
     /**
@@ -54,14 +73,26 @@ class Swifter {
      * @param array $options Message and smtp options.
      * @return boolean
      */
-    public static function smtp(array $options) {
-        $options += array(
-            'host' => static::$_config['host'],
-            'port' => static::$_config['port'],
-            'username' => static::$_config['username'],
-            'password' => static::$_config['password'],
-        );
+    public static function send($name, array $options = array()) {
+        //$options += array('conditions' => null, 'strategies' => true);
+        $settings = static::config();
 
+        if (!isset($settings[$name])) {
+            return false;
+        }
+
+        $transport = $settings[$name]['transport'];
+        return static::$transport($settings[$name] + $options);
+
+    }
+
+    /**
+     * Send mail using `smtp` transport.
+     *
+     * @param array $options Message and smtp options.
+     * @return boolean
+     */
+    protected static function smtp(array $options) {
         $transport = Swift_SmtpTransport::newInstance($options['host'], $options['port'])
                    ->setUsername($options['username'])
                    ->setPassword($options['password']);
@@ -76,7 +107,7 @@ class Swifter {
      * @param array $options Message options.
      * @return boolean
      */
-    public static function mail(array $options) {
+    protected static function mail(array $options) {
         $transport = Swift_MailTransport::newInstance();
         $mailer = Swift_Mailer::newInstance($transport);
         return $mailer->send(static::_message($options));
@@ -90,14 +121,12 @@ class Swifter {
      */
     protected static function _message(array $options) {
         $options += array(
-            'from' => static::$_config['from'],
-            'to' => static::$_config['to'],
             'cc' => false,
             'bcc' => false,
             'subject' => '',
             'body' => '',
             'template' => false,
-            'data' => array(), // Data to be available in the view
+            'data' => array() // Data to be available in the view
         );
 
         // Subject is always available is templates as `$subject`
