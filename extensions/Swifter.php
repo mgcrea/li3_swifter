@@ -82,7 +82,7 @@ class Swifter extends \lithium\core\Adaptable {
         }
 
         $transport = $settings[$name]['transport'];
-        return static::$transport($settings[$name] + $options);
+        return static::$transport($options + $settings[$name]);
 
     }
 
@@ -131,6 +131,8 @@ class Swifter extends \lithium\core\Adaptable {
 
         // Subject is always available is templates as `$subject`
         $options['subject'] = $options['subject'];
+
+        if(!$options['to']) throw new \BadMethodCallException();
 
         $message = Swift_Message::newInstance($options['subject'])
                  ->setTo($options['to'])
