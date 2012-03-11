@@ -142,7 +142,7 @@ class Swifter extends \lithium\core\Adaptable {
             $message->addCc($options['cc']);
         }
         if ($options['bcc']) {
-            $message->addCc($options['bcc']);
+            $message->addBcc($options['bcc']);
         }
 
         if ($options['template']) {
