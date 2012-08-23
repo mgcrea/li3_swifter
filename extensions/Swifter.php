@@ -139,10 +139,24 @@ class Swifter extends \lithium\core\Adaptable {
                  ->setFrom($options['from']);
 
         if ($options['cc']) {
-            $message->addCc($options['cc']);
+            if(is_array($options['cc'])) {
+                foreach($options['cc'] as $key => $cc) {
+                    if(!is_numeric($key)) $message->addCc($key, $cc);
+                    else $message->addCc($cc);
+                }
+            } else {
+                $message->addCc($options['cc']);
+            }
         }
         if ($options['bcc']) {
-            $message->addBcc($options['bcc']);
+            if(is_array($options['bcc'])) {
+                foreach($options['bcc'] as $key => $bcc) {
+                    if(!is_numeric($key)) $message->addBcc($key, $bcc);
+                    else $message->addBcc($bcc);
+                }
+            } else {
+                $message->addBcc($options['bcc']);
+            }
         }
 
         if ($options['template']) {
