@@ -12,6 +12,8 @@ use Swift_Mailer;
 use Swift_Message;
 use Swift_MailTransport;
 use Swift_SmtpTransport;
+use Swift_Preferences;
+use Swift_Encoding;
 use lithium\template\View;
 use lithium\core\Libraries;
 
@@ -134,7 +136,8 @@ class Swifter extends \lithium\core\Adaptable {
 
         if(!$options['to']) throw new \BadMethodCallException();
 
-        $message = Swift_Message::newInstance($options['subject'])
+        $message = Swift_Message::newInstance($options['subject'], null, null, 'utf-8')
+                 ->setEncoder(Swift_Encoding::get8BitEncoding())
                  ->setTo($options['to'])
                  ->setFrom($options['from']);
 
@@ -168,10 +171,12 @@ class Swifter extends \lithium\core\Adaptable {
                 )
             ));
 
-            $message->setBody($view->render('template', $options['data'], array(
+            $html = $view->render('template', $options['data'], array(
                 'template' => $options['template'],
                 'layout' => false,
-            )), 'text/html');
+            ));
+
+            $message->setBody(str_replace('\"', '"', $html), 'text/html');
         }
         else {
             $message->setBody($options['body']);
